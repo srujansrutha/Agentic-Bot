@@ -1,0 +1,17 @@
+# Normalize line endings to LF in the repository
+* text=auto eol=lf
+
+# Force these to always be LF
+*.py text eol=lf
+*.md text eol=lf
+*.toml text eol=lf
+*.txt text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.env text eol=lf
+*.gitignore text eol=lf
+
+# Binaries — no conversion
+*.db binary
+uv.lock text eol=lf

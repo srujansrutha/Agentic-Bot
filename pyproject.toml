@@ -1,0 +1,17 @@
+[project]
+name = "chatbot"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "aiosqlite>=0.22.1",
+    "dotenv>=0.9.9",
+    "fastapi>=0.141.1",
+    "langchain-core>=1.5.3",
+    "langchain-ollama>=1.1.0",
+    "langgraph>=1.2.10",
+    "langgraph-checkpoint-sqlite>=3.1.1",
+    "pydantic>=2.13.4",
+    "uvicorn>=0.52.0",
+]
