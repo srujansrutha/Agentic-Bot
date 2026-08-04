@@ -1,0 +1,24 @@
+services:
+  mongo:
+    image: mongo:latest
+    container_name: chatbot-mongo
+    restart: unless-stopped
+    command: ["--auth"]
+    ports:
+      - "27018:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:alpine
+    container_name: chatbot-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+
+volumes:
+  mongo_data:
+

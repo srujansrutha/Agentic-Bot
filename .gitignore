@@ -22,3 +22,5 @@ chatbot.db-wal
 Thumbs.db
 .vscode/
 .idea/
+
+\.claude
