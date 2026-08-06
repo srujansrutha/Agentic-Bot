@@ -31,6 +31,22 @@ async def list_conversations(user_id: str) -> list[Conversation]:
     return conversations
 
 
+async def delete_conversation(user_id: str, thread_id: str) -> bool:
+    """Removes the ownership record and invalidates both caches that
+    mention this thread. Returns False if there was nothing to delete.
+    Doesn't touch the LangGraph checkpoint history — that's a separate
+    system, purged separately by delete_conversation_history."""
+    result = await collection.delete_one({"user_id": user_id, "thread_id": thread_id})
+
+    # Both caches must go, not just the list one: owns:{user}:{thread} caches
+    # "yes" for up to CACHE_TTL_SECONDS, which would let /chat keep writing
+    # to a conversation we just told the user we deleted.
+    await redis_client.delete(f"conversations:{user_id}")
+    await redis_client.delete(f"owns:{user_id}:{thread_id}")
+
+    return result.deleted_count > 0
+
+
 async def user_owns_thread(user_id: str, thread_id: str) -> bool:
     cache_key = f"owns:{user_id}:{thread_id}"
     if await redis_client.get(cache_key):

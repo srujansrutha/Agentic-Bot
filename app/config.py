@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     mongo_uri: str
     mongo_db_name: str = "chatbot"
     redis_url: str = "redis://localhost:6380"
+    embedding_model: str = "qwen3-embedding:8b"
 
 
 settings = Settings()
