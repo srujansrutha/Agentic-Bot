@@ -9,6 +9,7 @@ from app.services.conversation_service import (
     list_conversations,
     user_owns_thread,
 )
+from app.services.guardrail_service import check_rate_limit
 from app.services.rag_service import store_document
 from app.services.image_rag_service import store_image
 from app.services.document_extraction import extract_content
@@ -66,6 +67,9 @@ async def delete_conversation_route(thread_id: str, user_id: str):
 async def chat(request: ChatRequest):
     if not await user_owns_thread(request.user_id, request.thread_id):
         raise HTTPException(status_code=403, detail="thread_id does not belong to user_id")
+
+    if not await check_rate_limit(request.user_id):
+        raise HTTPException(status_code=429, detail="Too many messages — slow down and try again in a minute.")
 
     input = {
         "messages": [{'role': 'user', 'content': request.message}],

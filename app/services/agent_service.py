@@ -3,7 +3,7 @@ import threading
 
 from langgraph.graph import StateGraph, START, END
 from typing import TypedDict, Annotated
-from langchain_core.messages import BaseMessage, SystemMessage
+from langchain_core.messages import AIMessage, BaseMessage, SystemMessage
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.graph.message import add_messages
 from dotenv import load_dotenv
@@ -12,6 +12,7 @@ import aiosqlite
 from app.config import settings
 from app.clients.llm_client import llm
 from app.services.rag_service import retrieve_relevant_chunks
+from app.services.guardrail_service import is_message_safe
 
 load_dotenv()
 
@@ -49,6 +50,16 @@ class ChatState(TypedDict):
     context: str  # no reducer — each turn's retrieval simply replaces the last one
     use_retrieval: bool
     user_id: str
+    blocked: bool  # no reducer — recomputed fresh by guardrail_input_node every turn
+
+
+def guardrail_input_node(state: ChatState):
+    latest_message = state["messages"][-1]
+    return {"blocked": not is_message_safe(latest_message.content)}
+
+
+def refusal_node(state: ChatState):
+    return {"messages": [AIMessage(content="I can't help with that request.")]}
 
 
 async def retrieve_node(state: ChatState):
@@ -77,14 +88,24 @@ def chat_node(state: ChatState):
     return {"messages": [response]}
 
 
-def route_after_start(state: ChatState) -> str:
+def route_after_guardrail(state: ChatState) -> str:
+    if state.get("blocked"):
+        return "refusal"
     return "retrieve" if state.get("use_retrieval") else "chatbot"
 
 
 graph = StateGraph(ChatState)
+graph.add_node("guardrail_input", guardrail_input_node)
+graph.add_node("refusal", refusal_node)
 graph.add_node("retrieve", retrieve_node)
 graph.add_node("chatbot", chat_node)
-graph.add_conditional_edges(START, route_after_start, {"retrieve": "retrieve", "chatbot": "chatbot"})
+graph.add_edge(START, "guardrail_input")
+graph.add_conditional_edges(
+    "guardrail_input",
+    route_after_guardrail,
+    {"refusal": "refusal", "retrieve": "retrieve", "chatbot": "chatbot"},
+)
+graph.add_edge("refusal", END)
 graph.add_edge("retrieve", "chatbot")
 graph.add_edge("chatbot", END)
 
